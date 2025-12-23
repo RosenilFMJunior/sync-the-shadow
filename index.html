@@ -4,13 +4,22 @@
     <meta charset="UTF-8">
     <title>SYNC | The Shadow</title>
     <style>
-        body { margin: 0; background: #0a0a0c; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
-        .circle-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; transition: all 1s ease; }
+        body { margin: 0; background: #0a0a0c; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
+        
+        /* O Círculo Principal */
+        .circle-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; transition: all 1.5s ease; }
         .main-circle { width: 100%; height: 100%; border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 50%; position: absolute; animation: breathe 8s infinite; }
-        .shadow-cut { width: 2px; height: 60%; background: rgba(255, 255, 255, 0.2); position: absolute; transform: rotate(45deg); }
+        
+        /* A Cicatriz (O que tinha sido perdido) */
+        .shadow-cut { width: 2px; height: 60%; background: rgba(255, 255, 255, 0.2); position: absolute; transform: rotate(45deg); transition: 1s; }
+        
+        /* Estado de Brilho (Sincronia) */
         .sync-active .main-circle { border-color: white; box-shadow: 0 0 50px rgba(255,255,255,0.3); }
-        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.05); opacity: 0.5; } }
-        .status { position: absolute; bottom: -60px; letter-spacing: 3px; font-size: 0.7rem; opacity: 0.4; text-align: center; width: 100%; }
+        .sync-active .shadow-cut { background: white; box-shadow: 0 0 20px white; }
+        
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.05); opacity: 0.4; } }
+        
+        .status { margin-top: 60px; letter-spacing: 3px; font-size: 0.7rem; opacity: 0.4; text-align: center; width: 80%; line-height: 1.5; }
     </style>
 </head>
 <body>
@@ -18,8 +27,8 @@
     <div class="circle-container" id="visual">
         <div class="main-circle"></div>
         <div class="shadow-cut"></div>
-        <div id="status" class="status">ESPERANDO PELO ESPELHO...</div>
     </div>
+    <div id="status" class="status">ESPERANDO PELO ESPELHO...</div>
 
     <script>
         const visual = document.getElementById('visual');
@@ -27,34 +36,41 @@
         let lastFrame;
 
         async function init() {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.play();
 
-            setInterval(() => {
-                const canvas = document.createElement('canvas');
-                const ctx = canvas.getContext('2d');
-                canvas.width = 32; canvas.height = 32;
-                ctx.drawImage(video, 0, 0, 32, 32);
-                const current = ctx.getImageData(0,0,32,32).data;
+                setInterval(() => {
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    canvas.width = 32; canvas.height = 32;
+                    ctx.drawImage(video, 0, 0, 32, 32);
+                    const current = ctx.getImageData(0,0,32,32).data;
 
-                if (lastFrame) {
-                    let diff = 0;
-                    for (let i=0; i<current.length; i+=4) diff += Math.abs(current[i] - lastFrame[i]);
-                    
-                    if (diff < 120000) { // Ajuste fino da sensibilidade
-                        visual.classList.add('sync-active');
-                        status.innerText = "A SOMBRA EMERGE";
-                    } else {
-                        visual.classList.remove('sync-active');
-                        status.innerText = "VOCÊ SE MOVEU. O ESPELHO QUEBROU.";
+                    if (lastFrame) {
+                        let diff = 0;
+                        for (let i=0; i<current.length; i+=4) {
+                            diff += Math.abs(current[i] - lastFrame[i]);
+                        }
+                        
+                        // SENSIBILIDADE AJUSTADA (120000 para facilitar o brilho)
+                        if (diff < 120000) { 
+                            visual.classList.add('sync-active');
+                            status.innerText = "A SOMBRA FINALMENTE TE RECONHECE.";
+                        } else {
+                            visual.classList.remove('sync-active');
+                            status.innerText = "O EGO FALA ATRAVÉS DO MOVIMENTO.";
+                        }
                     }
-                }
-                lastFrame = current;
-            }, 100);
+                    lastFrame = current;
+                }, 100);
+            } catch (e) {
+                status.innerText = "O ESPELHO PRECISA DA TUA CÂMARA.";
+            }
         }
-        init().catch(() => status.innerText = "CÂMERA NECESSÁRIA");
+        init();
     </script>
 </body>
 </html>
