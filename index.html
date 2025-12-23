@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>SYNC | The Shadow</title>
+    <style>
+        body { margin: 0; background: #0a0a0c; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
+        .circle-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; transition: all 1s ease; }
+        .main-circle { width: 100%; height: 100%; border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 50%; position: absolute; animation: breathe 8s infinite; }
+        .shadow-cut { width: 2px; height: 60%; background: rgba(255, 255, 255, 0.2); position: absolute; transform: rotate(45deg); }
+        .sync-active .main-circle { border-color: white; box-shadow: 0 0 50px rgba(255,255,255,0.3); }
+        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.05); opacity: 0.5; } }
+        .status { position: absolute; bottom: -60px; letter-spacing: 3px; font-size: 0.7rem; opacity: 0.4; text-align: center; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="circle-container" id="visual">
+        <div class="main-circle"></div>
+        <div class="shadow-cut"></div>
+        <div id="status" class="status">ESPERANDO PELO ESPELHO...</div>
+    </div>
+
+    <script>
+        const visual = document.getElementById('visual');
+        const status = document.getElementById('status');
+        let lastFrame;
+
+        async function init() {
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
+
+            setInterval(() => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = 32; canvas.height = 32;
+                ctx.drawImage(video, 0, 0, 32, 32);
+                const current = ctx.getImageData(0,0,32,32).data;
+
+                if (lastFrame) {
+                    let diff = 0;
+                    for (let i=0; i<current.length; i+=4) diff += Math.abs(current[i] - lastFrame[i]);
+                    
+                    if (diff < 80000) { // Ajuste fino da sensibilidade
+                        visual.classList.add('sync-active');
+                        status.innerText = "A SOMBRA EMERGE";
+                    } else {
+                        visual.classList.remove('sync-active');
+                        status.innerText = "VOCÊ SE MOVEU. O ESPELHO QUEBROU.";
+                    }
+                }
+                lastFrame = current;
+            }, 100);
+        }
+        init().catch(() => status.innerText = "CÂMERA NECESSÁRIA");
+    </script>
+</body>
+</html>
