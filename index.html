@@ -43,7 +43,7 @@
                     let diff = 0;
                     for (let i=0; i<current.length; i+=4) diff += Math.abs(current[i] - lastFrame[i]);
                     
-                    if (diff < 80000) { // Ajuste fino da sensibilidade
+                    if (diff < 120000) { // Ajuste fino da sensibilidade
                         visual.classList.add('sync-active');
                         status.innerText = "A SOMBRA EMERGE";
                     } else {
