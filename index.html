@@ -30,7 +30,7 @@
     </div>
     <div id="status" class="status">ESPERANDO PELO ESPELHO...</div>
 
-    <script>
+        <script>
         const visual = document.getElementById('visual');
         const status = document.getElementById('status');
         let lastFrame;
@@ -42,21 +42,31 @@
                 video.srcObject = stream;
                 video.play();
 
+                // Inverte o vídeo internamente para compensar o celular de cabeça para baixo
+                video.style.transform = "rotate(180deg)";
+
                 setInterval(() => {
                     const canvas = document.createElement('canvas');
                     const ctx = canvas.getContext('2d');
                     canvas.width = 32; canvas.height = 32;
+                    
+                    // Desenha o vídeo invertido no canvas para análise
+                    ctx.translate(32, 32);
+                    ctx.rotate(Math.PI);
                     ctx.drawImage(video, 0, 0, 32, 32);
-                    const current = ctx.getImageData(0,0,32,32).data;
+                    
+                    // Pegamos apenas os dados da metade superior da tela (ignore o chão)
+                    // Analisamos do pixel 0 até a metade (512 de 1024 pixels totais no canvas 32x32)
+                    const current = ctx.getImageData(0, 0, 32, 16).data; 
 
                     if (lastFrame) {
                         let diff = 0;
-                        for (let i=0; i<current.length; i+=4) {
+                        for (let i = 0; i < current.length; i += 4) {
                             diff += Math.abs(current[i] - lastFrame[i]);
                         }
                         
-                        // SENSIBILIDADE AJUSTADA (120000 para facilitar o brilho)
-                        if (diff < 120000) { 
+                        // Sensibilidade ajustada para foco parcial
+                        if (diff < 60000) { 
                             visual.classList.add('sync-active');
                             status.innerText = "A SOMBRA FINALMENTE TE RECONHECE.";
                         } else {
@@ -72,5 +82,6 @@
         }
         init();
     </script>
+
 </body>
 </html>
