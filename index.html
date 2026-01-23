@@ -1,87 +1,131 @@
 <!DOCTYPE html>
-<html lang="pt">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYNC | The Shadow</title>
     <style>
-        body { margin: 0; background: #0a0a0c; display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; overflow: hidden; color: white; font-family: sans-serif; }
-        
-        /* O Círculo Principal */
-        .circle-container { position: relative; width: 300px; height: 300px; display: flex; justify-content: center; align-items: center; transition: all 1.5s ease; }
-        .main-circle { width: 100%; height: 100%; border: 2px solid rgba(255, 255, 255, 0.1); border-radius: 50%; position: absolute; animation: breathe 8s infinite; }
-        
-        /* A Cicatriz (O que tinha sido perdido) */
-        .shadow-cut { width: 2px; height: 60%; background: rgba(255, 255, 255, 0.2); position: absolute; transform: rotate(45deg); transition: 1s; }
-        
-        /* Estado de Brilho (Sincronia) */
-        .sync-active .main-circle { border-color: white; box-shadow: 0 0 50px rgba(255,255,255,0.3); }
-        .sync-active .shadow-cut { background: white; box-shadow: 0 0 20px white; }
-        
-        @keyframes breathe { 0%, 100% { transform: scale(1); opacity: 0.2; } 50% { transform: scale(1.05); opacity: 0.4; } }
-        
-        .status { margin-top: 60px; letter-spacing: 3px; font-size: 0.7rem; opacity: 0.4; text-align: center; width: 80%; line-height: 1.5; }
+        /* Estética do Vazio */
+        body { 
+            margin: 0; 
+            background: #050505; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            overflow: hidden; 
+            color: white; 
+            font-family: 'Courier New', Courier, monospace;
+            transition: background 2s ease-in-out;
+        }
+
+        /* O Efeito da Sombra (Silhueta) */
+        canvas#videoCanvas {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: brightness(0.5) contrast(2) grayscale(1) invert(1);
+            opacity: 0.3; /* A sombra fica sutil ao fundo */
+            z-index: 1;
+        }
+
+        /* O Círculo Central */
+        .circle { 
+            width: 200px; 
+            height: 200px; 
+            border: 1px solid rgba(255,255,255,0.2); 
+            border-radius: 50%; 
+            z-index: 2;
+            transition: 1.5s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* Estado Meditativo: Tela Piscando/Respirando */
+        .meditation-active {
+            animation: breath-bg 4s infinite ease-in-out;
+        }
+
+        .circle-active {
+            border-color: #fff;
+            box-shadow: 0 0 50px rgba(255,255,255,0.2);
+            transform: scale(1.1);
+        }
+
+        @keyframes breath-bg {
+            0% { background: #050505; }
+            50% { background: #1a1a1a; }
+            100% { background: #050505; }
+        }
+
+        #msg { 
+            margin-top: 30px; 
+            letter-spacing: 5px; 
+            font-size: 0.6rem; 
+            opacity: 0.4; 
+            z-index: 2;
+            text-transform: uppercase;
+        }
     </style>
 </head>
 <body>
+    <canvas id="videoCanvas"></canvas>
+    <div class="circle" id="orb"></div>
+    <div id="msg">Aguardando o espelho...</div>
 
-    <div class="circle-container" id="visual">
-        <div class="main-circle"></div>
-        <div class="shadow-cut"></div>
-    </div>
-    <div id="status" class="status">ESPERANDO PELO ESPELHO...</div>
+    <script>
+        const canvas = document.getElementById('videoCanvas');
+        const ctx = canvas.getContext('2d');
+        const orb = document.getElementById('orb');
+        const msg = document.getElementById('msg');
+        let lastData;
 
-        <script>
-        const visual = document.getElementById('visual');
-        const status = document.getElementById('status');
-        let lastFrame;
+        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+            const video = document.createElement('video');
+            video.srcObject = stream;
+            video.play();
 
-        async function init() {
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.play();
+            function loop() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                
+                // Desenha a silhueta no canvas
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                // Lógica de detecção de movimento (amostragem leve)
+                const checkCanvas = document.createElement('canvas');
+                const checkCtx = checkCanvas.getContext('2d');
+                checkCanvas.width = checkCanvas.height = 32;
+                checkCtx.drawImage(video, 0, 0, 32, 32);
+                const currentData = checkCtx.getImageData(0, 0, 32, 32).data;
 
-                // Inverte o vídeo internamente para compensar o celular de cabeça para baixo
-                video.style.transform = "rotate(180deg)";
-
-                setInterval(() => {
-                    const canvas = document.createElement('canvas');
-                    const ctx = canvas.getContext('2d');
-                    canvas.width = 32; canvas.height = 32;
-                    
-                    // Desenha o vídeo invertido no canvas para análise
-                    ctx.translate(32, 32);
-                    ctx.rotate(Math.PI);
-                    ctx.drawImage(video, 0, 0, 32, 32);
-                    
-                    // Pegamos apenas os dados da metade superior da tela (ignore o chão)
-                    // Analisamos do pixel 0 até a metade (512 de 1024 pixels totais no canvas 32x32)
-                    const current = ctx.getImageData(0, 0, 32, 16).data; 
-
-                    if (lastFrame) {
-                        let diff = 0;
-                        for (let i = 0; i < current.length; i += 4) {
-                            diff += Math.abs(current[i] - lastFrame[i]);
-                        }
-                        
-                        // Sensibilidade ajustada para foco parcial
-                        if (diff < 60000) { 
-                            visual.classList.add('sync-active');
-                            status.innerText = "A SOMBRA FINALMENTE TE RECONHECE.";
-                        } else {
-                            visual.classList.remove('sync-active');
-                            status.innerText = "O EGO FALA ATRAVÉS DO MOVIMENTO.";
-                        }
+                if (lastData) {
+                    let diff = 0;
+                    for (let i = 0; i < currentData.length; i += 4) {
+                        diff += Math.abs(currentData[i] - lastData[i]);
                     }
-                    lastFrame = current;
-                }, 100);
-            } catch (e) {
-                status.innerText = "O ESPELHO PRECISA DA TUA CÂMARA.";
-            }
-        }
-        init();
-    </script>
 
+                    // Sensibilidade ajustada para 100.000 conforme conversamos
+                    const isStill = diff < 100000;
+
+                    if (isStill) {
+                        document.body.classList.add('meditation-active');
+                        orb.classList.add('circle-active');
+                        msg.innerText = "Sincronia estabelecida";
+                    } else {
+                        document.body.classList.remove('meditation-active');
+                        orb.classList.remove('circle-active');
+                        msg.innerText = "Movimento detectado";
+                    }
+                }
+                lastData = currentData;
+                requestAnimationFrame(loop);
+            }
+            loop();
+        }).catch(() => msg.innerText = "Câmera necessária");
+    </script>
 </body>
 </html>
