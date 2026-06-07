@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SYNC | The Shadow</title>
     <style>
-        /* Estética do Vazio */
+        /* Estética do Vazio e Meditação */
         body { 
             margin: 0; 
             background: #050505; 
@@ -26,106 +26,201 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: brightness(0.5) contrast(2) grayscale(1) invert(1);
+            filter: brightness(0.4) contrast(2.5) grayscale(1) invert(1);
             opacity: 0.3; /* A sombra fica sutil ao fundo */
             z-index: 1;
         }
 
-        /* O Círculo Central */
-        .circle { 
-            width: 200px; 
-            height: 200px; 
-            border: 1px solid rgba(255,255,255,0.2); 
-            border-radius: 50%; 
+        /* O Círculo Principal e Elementos Visuais */
+        .circle-container { 
+            position: relative; 
+            width: 250px; 
+            height: 250px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            transition: all 1.5s ease; 
             z-index: 2;
+        }
+        
+        .main-circle { 
+            width: 100%; 
+            height: 100%; 
+            border: 1px solid rgba(255, 255, 255, 0.15); 
+            border-radius: 50%; 
+            position: absolute; 
+            animation: breathe 8s infinite ease-in-out; 
             transition: 1.5s;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+        }
+        
+        /* A Cicatriz (O que tinha sido perdido) */
+        .shadow-cut { 
+            width: 1px; 
+            height: 60%; 
+            background: rgba(255, 255, 255, 0.2); 
+            position: absolute; 
+            transform: rotate(45deg); 
+            transition: 1s; 
+        }
+        
+        /* Estado de Brilho (Sincronia Ativa) */
+        .sync-active .main-circle { 
+            border-color: white; 
+            box-shadow: 0 0 50px rgba(255,255,255,0.25); 
+            transform: scale(1.05);
+        }
+        
+        .sync-active .shadow-cut { 
+            background: white; 
+            box-shadow: 0 0 20px white; 
+        }
+        
+        @keyframes breathe { 
+            0%, 100% { transform: scale(1); opacity: 0.3; } 
+            50% { transform: scale(1.03); opacity: 0.6; } 
+        }
+        
+        /* Status Text */
+        .status { 
+            margin-top: 40px; 
+            letter-spacing: 5px; 
+            font-size: 0.65rem; 
+            opacity: 0.4; 
+            text-align: center; 
+            width: 80%; 
+            line-height: 1.5; 
+            z-index: 2;
+            text-transform: uppercase;
+            transition: opacity 0.5s;
         }
 
-        /* Estado Meditativo: Tela Piscando/Respirando */
+        .sync-active + .status {
+            opacity: 0.8;
+        }
+
+        /* Estado Meditativo Coletivo: Respiração do Plano de Fundo */
         .meditation-active {
-            animation: breath-bg 4s infinite ease-in-out;
-        }
-
-        .circle-active {
-            border-color: #fff;
-            box-shadow: 0 0 50px rgba(255,255,255,0.2);
-            transform: scale(1.1);
+            animation: breath-bg 6s infinite ease-in-out;
         }
 
         @keyframes breath-bg {
             0% { background: #050505; }
-            50% { background: #1a1a1a; }
+            50% { background: #0f0f12; }
             100% { background: #050505; }
-        }
-
-        #msg { 
-            margin-top: 30px; 
-            letter-spacing: 5px; 
-            font-size: 0.6rem; 
-            opacity: 0.4; 
-            z-index: 2;
-            text-transform: uppercase;
         }
     </style>
 </head>
 <body>
+
     <canvas id="videoCanvas"></canvas>
-    <div class="circle" id="orb"></div>
-    <div id="msg">Aguardando o espelho...</div>
+
+    <div class="circle-container" id="visual">
+        <div class="main-circle"></div>
+        <div class="shadow-cut"></div>
+    </div>
+    
+    <div id="status" class="status">ESPERANDO PELO ESPELHO...</div>
 
     <script>
         const canvas = document.getElementById('videoCanvas');
         const ctx = canvas.getContext('2d');
-        const orb = document.getElementById('orb');
-        const msg = document.getElementById('msg');
-        let lastData;
+        const visual = document.getElementById('visual');
+        const status = document.getElementById('status');
+        
+        let video;
+        let lastFrameData;
+        const SENSITIVITY = 70000; // Ajuste fino para detecção na metade superior (pose estática)
 
-        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-            const video = document.createElement('video');
-            video.srcObject = stream;
-            video.play();
+        async function init() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                video = document.createElement('video');
+                video.srcObject = stream;
+                video.setAttribute('playsinline', true);
+                video.play();
 
-            function loop() {
+                video.addEventListener('loadedmetadata', () => {
+                    // Inicializa os loops assim que o vídeo estiver pronto
+                    requestAnimationFrame(renderLoop);
+                    setInterval(analysisLoop, 150); // Checagem de movimento a cada 150ms
+                });
+
+            } catch (e) {
+                status.innerText = "O ESPELHO PRECISA DA TUA CÂMARA.";
+                console.error(e);
+            }
+        }
+
+        // 1. Loop de Renderização da Imagem (60fps)
+        function renderLoop() {
+            if (video && video.readyState === video.HAVE_ENOUGH_DATA) {
                 canvas.width = window.innerWidth;
                 canvas.height = window.innerHeight;
-                
-                // Desenha a silhueta no canvas
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                // Lógica de detecção de movimento (amostragem leve)
-                const checkCanvas = document.createElement('canvas');
-                const checkCtx = checkCanvas.getContext('2d');
-                checkCanvas.width = checkCanvas.height = 32;
-                checkCtx.drawImage(video, 0, 0, 32, 32);
-                const currentData = checkCtx.getImageData(0, 0, 32, 32).data;
 
-                if (lastData) {
-                    let diff = 0;
-                    for (let i = 0; i < currentData.length; i += 4) {
-                        diff += Math.abs(currentData[i] - lastData[i]);
-                    }
-
-                    // Sensibilidade ajustada para 100.000 conforme conversamos
-                    const isStill = diff < 100000;
-
-                    if (isStill) {
-                        document.body.classList.add('meditation-active');
-                        orb.classList.add('circle-active');
-                        msg.innerText = "Sincronia estabelecida";
-                    } else {
-                        document.body.classList.remove('meditation-active');
-                        orb.classList.remove('circle-active');
-                        msg.innerText = "Movimento detectado";
-                    }
-                }
-                lastData = currentData;
-                requestAnimationFrame(loop);
+                ctx.save();
+                // Centraliza e rotaciona 180° para compensar o celular invertido
+                ctx.translate(canvas.width / 2, canvas.height / 2);
+                ctx.rotate(Math.PI);
+                // Desenha a imagem centralizada e espelhada/invertida
+                ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
+                ctx.restore();
             }
-            loop();
-        }).catch(() => msg.innerText = "Câmera necessária");
+            requestAnimationFrame(renderLoop);
+        }
+
+        // 2. Loop de Análise Matemática do Movimento (Leve)
+        function analysisLoop() {
+            if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
+
+            // Criamos um micro-canvas em memória para processamento de matriz
+            const checkCanvas = document.createElement('canvas');
+            const checkCtx = checkCanvas.getContext('2d');
+            checkCanvas.width = 32; 
+            checkCanvas.height = 32;
+
+            // Desenha rotacionado no micro-canvas também para alinhar os quadrantes
+            checkCtx.translate(16, 16);
+            checkCtx.rotate(Math.PI);
+            checkCtx.drawImage(video, -16, -16, 32, 32);
+
+            // Coleta apenas a metade superior da tela (32x16 pixels) para ignorar variações das pernas/chão
+            const currentFrameData = checkCtx.getImageData(0, 0, 32, 16).data;
+
+            if (lastFrameData) {
+                let diff = 0;
+                // Compara a diferença absoluta de cor canal por canal (R, G, B)
+                for (let i = 0; i < currentFrameData.length; i += 4) {
+                    diff += Math.abs(currentFrameData[i] - lastFrameData[i]);       // R
+                    diff += Math.abs(currentFrameData[i+1] - lastFrameData[i+1]);   // G
+                    diff += Math.abs(currentFrameData[i+2] - lastFrameData[i+2]);   // B
+                }
+
+                const isStill = diff < SENSITIVITY;
+
+                if (isStill) {
+                    // Estado Zen / Sem movimento na pose de lótus
+                    document.body.classList.add('meditation-active');
+                    visual.classList.add('sync-active');
+                    status.innerText = "A SOMBRA FINALMENTE TE RECONHECE.";
+                } else {
+                    // Estado de Agitação / Movimento detectado
+                    document.body.classList.remove('meditation-active');
+                    visual.classList.remove('sync-active');
+                    status.innerText = "O EGO FALA ATRAVÉS DO MOVIMENTO.";
+                }
+            }
+
+            lastFrameData = currentFrameData;
+        }
+
+        // Redimensiona o canvas dinamicamente se a janela mudar de tamanho
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Inicia o espelho
+        init();
     </script>
 </body>
 </html>
