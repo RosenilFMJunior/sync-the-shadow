@@ -20,15 +20,29 @@
             transition: background 2s ease-in-out;
         }
 
-        /* O Efeito da Sombra (Silhueta) */
+        /* O Efeito da Sombra (Silhueta) com Transição de Cor via Filtros CSS */
         canvas#videoCanvas {
             position: absolute;
             width: 100%;
             height: 100%;
             object-fit: cover;
-            filter: brightness(0.4) contrast(2.5) grayscale(1) invert(1);
-            opacity: 0.3; /* A sombra fica sutil ao fundo */
+            opacity: 0.35; /* Sombra sutil ao fundo */
             z-index: 1;
+            transition: filter 0.8s ease-in-out;
+        }
+
+        /* Classes de Sinal do IERO que alteram a cor da silhueta invertida */
+        /* Mistura de grayscale, invert e sepia com hue-rotate para gerar as 3 cores místicas */
+        .sinal-verde #videoCanvas {
+            filter: brightness(0.4) contrast(2.5) grayscale(1) invert(1) sepia(1) hue-rotate(90deg) saturate(3);
+        }
+        
+        .sinal-amarelo #videoCanvas {
+            filter: brightness(0.4) contrast(2.5) grayscale(1) invert(1) sepia(1) hue-rotate(15deg) saturate(3);
+        }
+        
+        .sinal-vermelho #videoCanvas {
+            filter: brightness(0.4) contrast(2.5) grayscale(1) invert(1) sepia(1) hue-rotate(320deg) saturate(4);
         }
 
         /* O Círculo Principal e Elementos Visuais */
@@ -63,17 +77,27 @@
             transition: 1s; 
         }
         
-        /* Estado de Brilho (Sincronia Ativa) */
-        .sync-active .main-circle { 
-            border-color: white; 
-            box-shadow: 0 0 50px rgba(255,255,255,0.25); 
+        /* Estado de Brilho Dinâmico pelas Cores do IERO no Círculo */
+        .sinal-verde .main-circle { 
+            border-color: #2ecc71; 
+            box-shadow: 0 0 50px rgba(46, 204, 113, 0.25); 
             transform: scale(1.05);
         }
-        
-        .sync-active .shadow-cut { 
-            background: white; 
-            box-shadow: 0 0 20px white; 
+        .sinal-verde .shadow-cut { background: #2ecc71; box-shadow: 0 0 20px #2ecc71; }
+
+        .sinal-amarelo .main-circle { 
+            border-color: #f1c40f; 
+            box-shadow: 0 0 40px rgba(241, 196, 15, 0.2); 
+            transform: scale(1.02);
         }
+        .sinal-amarelo .shadow-cut { background: #f1c40f; box-shadow: 0 0 10px #f1c40f; }
+
+        .sinal-vermelho .main-circle { 
+            border-color: #e74c3c; 
+            box-shadow: 0 0 30px rgba(231, 76, 60, 0.15); 
+            transform: scale(0.98);
+        }
+        .sinal-vermelho .shadow-cut { background: #e74c3c; box-shadow: 0 0 5px #e74c3c; }
         
         @keyframes breathe { 
             0%, 100% { transform: scale(1); opacity: 0.3; } 
@@ -85,17 +109,13 @@
             margin-top: 40px; 
             letter-spacing: 5px; 
             font-size: 0.65rem; 
-            opacity: 0.4; 
+            opacity: 0.5; 
             text-align: center; 
             width: 80%; 
-            line-height: 1.5; 
+            line-height: 1.8; 
             z-index: 2;
             text-transform: uppercase;
             transition: opacity 0.5s;
-        }
-
-        .sync-active + .status {
-            opacity: 0.8;
         }
 
         /* Estado Meditativo Coletivo: Respiração do Plano de Fundo */
@@ -105,14 +125,12 @@
 
         @keyframes breath-bg {
             0% { background: #050505; }
-            50% { background: #0f0f12; }
+            50% { background: #0b0f0b; } /* Leve pulsação esmeralda no zen */
             100% { background: #050505; }
         }
     </style>
 </head>
-<body>
-
-    <canvas id="videoCanvas"></canvas>
+<body class="sinal-vermelho"> <canvas id="videoCanvas"></canvas>
 
     <div class="circle-container" id="visual">
         <div class="main-circle"></div>
@@ -129,20 +147,25 @@
         
         let video;
         let lastFrameData;
-        const SENSITIVITY = 70000; // Ajuste fino para detecção na metade superior (pose estática)
+        const SENSITIVITY = 70000; 
+
+        // Variável Dinâmica do IERO (Inicia em 0% e busca a estabilidade)
+        let iero = 0; 
 
         async function init() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                // Força o uso da câmera frontal ('user') nativamente para o teste no celular
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "user" } 
+                });
                 video = document.createElement('video');
                 video.srcObject = stream;
                 video.setAttribute('playsinline', true);
                 video.play();
 
                 video.addEventListener('loadedmetadata', () => {
-                    // Inicializa os loops assim que o vídeo estiver pronto
                     requestAnimationFrame(renderLoop);
-                    setInterval(analysisLoop, 150); // Checagem de movimento a cada 150ms
+                    setInterval(analysisLoop, 150); 
                 });
 
             } catch (e) {
@@ -161,34 +184,30 @@
                 // Centraliza e rotaciona 180° para compensar o celular invertido
                 ctx.translate(canvas.width / 2, canvas.height / 2);
                 ctx.rotate(Math.PI);
-                // Desenha a imagem centralizada e espelhada/invertida
                 ctx.drawImage(video, -canvas.width / 2, -canvas.height / 2, canvas.width, canvas.height);
                 ctx.restore();
             }
             requestAnimationFrame(renderLoop);
         }
 
-        // 2. Loop de Análise Matemática do Movimento (Leve)
+        // 2. Loop de Análise Matemática do Movimento com Motor IERO
         function analysisLoop() {
             if (!video || video.readyState !== video.HAVE_ENOUGH_DATA) return;
 
-            // Criamos um micro-canvas em memória para processamento de matriz
             const checkCanvas = document.createElement('canvas');
             const checkCtx = checkCanvas.getContext('2d');
             checkCanvas.width = 32; 
             checkCanvas.height = 32;
 
-            // Desenha rotacionado no micro-canvas também para alinhar os quadrantes
             checkCtx.translate(16, 16);
             checkCtx.rotate(Math.PI);
             checkCtx.drawImage(video, -16, -16, 32, 32);
 
-            // Coleta apenas a metade superior da tela (32x16 pixels) para ignorar variações das pernas/chão
+            // Coleta a metade superior para focar no tronco/pose do usuário
             const currentFrameData = checkCtx.getImageData(0, 0, 32, 16).data;
 
             if (lastFrameData) {
                 let diff = 0;
-                // Compara a diferença absoluta de cor canal por canal (R, G, B)
                 for (let i = 0; i < currentFrameData.length; i += 4) {
                     diff += Math.abs(currentFrameData[i] - lastFrameData[i]);       // R
                     diff += Math.abs(currentFrameData[i+1] - lastFrameData[i+1]);   // G
@@ -197,29 +216,46 @@
 
                 const isStill = diff < SENSITIVITY;
 
+                // --- ALGORITMO DE EVOLUÇÃO DO IERO ---
                 if (isStill) {
-                    // Estado Zen / Sem movimento na pose de lótus
-                    document.body.classList.add('meditation-active');
-                    visual.classList.add('sync-active');
-                    status.innerText = "A SOMBRA FINALMENTE TE RECONHECE.";
+                    // Quanto mais tempo imóvel, mais o IERO escala em direção à resolução (máx 100)
+                    iero = Math.min(100, iero + 8); 
                 } else {
-                    // Estado de Agitação / Movimento detectado
+                    // Qualquer agitação joga a estabilidade operacional para baixo drasticamente
+                    // Mapeia o delta do movimento para penalizar proporcionalmente
+                    let penalidade = Math.min(25, Math.floor(diff / 15000));
+                    iero = Math.max(0, iero - (penalidade > 5 ? penalidade : 6));
+                }
+
+                // --- MÁQUINA DE ESTADOS DE SINAIS (CORES) ---
+                document.body.classList.remove('sinal-verde', 'sinal-amarelo', 'sinal-vermelho');
+
+                if (iero >= 85) {
+                    // 🟢 ESTADO ZEN (Estabilidade Máxima)
+                    document.body.classList.add('sinal-verde');
+                    document.body.classList.add('meditation-active');
+                    status.innerHTML = `IERO: ${iero}%<br>A SOMBRA FINALMENTE TE RECONHECE.`;
+                } else if (iero >= 40 && iero < 85) {
+                    // 🟡 ESTADO DE TRANSIÇÃO (Alerta / Busca de Eixo)
+                    document.body.classList.add('sinal-amarelo');
                     document.body.classList.remove('meditation-active');
-                    visual.classList.remove('sync-active');
-                    status.innerText = "O EGO FALA ATRAVÉS DO MOVIMENTO.";
+                    status.innerHTML = `IERO: ${iero}%<br>PROCURANDO A RESOLUÇÃO INTERNA...`;
+                } else {
+                    // 🔴 ESTADO DE RUPTURA (Agitação / Ruído do Ego)
+                    document.body.classList.add('sinal-vermelho');
+                    document.body.classList.remove('meditation-active');
+                    status.innerHTML = `IERO: ${iero}%<br>O EGO FALA ATRAVÉS DO MOVIMENTO.`;
                 }
             }
 
             lastFrameData = currentFrameData;
         }
 
-        // Redimensiona o canvas dinamicamente se a janela mudar de tamanho
         window.addEventListener('resize', () => {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
         });
 
-        // Inicia o espelho
         init();
     </script>
 </body>
