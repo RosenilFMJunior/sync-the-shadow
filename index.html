@@ -260,3 +260,34 @@
     </script>
 </body>
 </html>
+<style>
+    .sync-portal {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        font-family: monospace;
+        font-size: 11px;
+        letter-spacing: 2px;
+        z-index: 100;
+    }
+
+    .sync-portal a {
+        color: rgba(255, 255, 255, 0.3);
+        text-decoration: none;
+        transition: color 0.4s, text-shadow 0.4s;
+        padding: 5px 10px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        background: rgba(0, 0, 0, 0.5);
+    }
+
+    /* O portal ganha um leve brilho ciano ao passar o mouse, sugerindo a assinatura da sombra */
+    .sync-portal a:hover {
+        color: #00ffcc;
+        text-shadow: 0 0 8px rgba(0, 255, 204, 0.6);
+        border-color: rgba(0, 255, 204, 0.2);
+    }
+</style>
+
+<div class="sync-portal">
+    <a href="shadow.html">// ACCEDE_SHADOW_OF_SYNC</a>
+</div>
