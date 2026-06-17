@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SYNC - The Shadow of the Minimum Space</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #050505;
+            color: #ffffff;
+            font-family: monospace;
+            overflow: hidden;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* O Plano Cartesiano de Fundo (Linhas de Guia Súteis) */
+        .cartesian-plane {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+        .axis-x {
+            position: absolute;
+            top: 50%;
+            left: 0;
+            width: 100%;
+            height: 1px;
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .axis-y {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 1px;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        /* O ESPAÇO MÍNIMO (A Janela de Invariância) */
+        #minimum-space {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background-color: #ffffff;
+            border-radius: 50%;
+            z-index: 10;
+            transition: background-color 0.3s;
+        }
+
+        /* O Painel de Telemetria (Dados em Tempo Real) */
+        #telemetry {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 11px;
+            line-height: 1.6;
+            letter-spacing: 1px;
+            color: rgba(255, 255, 255, 0.4);
+            z-index: 20;
+        }
+
+        .highlight {
+            color: #00ffcc;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cartesian-plane">
+        <div class="axis-x"></div>
+        <div class="axis-y"></div>
+    </div>
+
+    <div id="minimum-space"></div>
+
+    <div id="telemetry">
+        <div>PROJETO: SYNC // THE SHADOW</div>
+        <div>TEMPO DE FLUXO (t): <span id="val-t" class="highlight">0</span>s</div>
+        <div>DENSIDADE ENERGIA (&rho;_E): <span id="val-rho" class="highlight">100</span>%</div>
+        <div>ENTROPIA ACUMULADA (S): <span id="val-s" class="highlight">0</span></div>
+        <div>ESTADO EXISTENCIAL (&Psi;): <span id="val-psi" class="highlight">1.00</span></div>
+    </div>
+
+    <script>
+        const pontoCentral = document.getElementById('minimum-space');
+        const txtT = document.getElementById('val-t');
+        const txtRho = document.getElementById('val-rho');
+        const txtS = document.getElementById('val-s');
+        const txtPsi = document.getElementById('val-psi');
+
+        // Constantes do Algoritmo Calibrado
+        let t = 0;
+        const taxaDiluicao = 0.015;
+        const ritmoEntropia = 0.005;
+        const estresseOxidativo = 1.3; 
+        const energiaMaxima = 100; // Normalizado para visualização (%)
+        const I_x0 = 1.0; // Invariância Estável
+
+        function atualizarFrame() {
+            t += 0.05; // Velocidade do avanço temporal
+
+            // Equações Dinâmicas
+            const rho_E = energiaMaxima * Math.exp(-taxaDiluicao * t);
+            const S = (ritmoEntropia * Math.pow(t, 1.4)) * estresseOxidativo;
+            const psi_t = (rho_E * I_x0) - S;
+
+            if (psi_t > 0) {
+                // Tradução Gráfica: A Sombra se expande enquanto a energia se dilui
+                // O raio do borrão cresce com a entropia; a opacidade cai com o esgotamento de psi
+                const raioSombra = S * 4; 
+                const opacidadeSombra = (psi_t / energiaMaxima) * 0.8;
+                
+                pontoCentral.style.boxShadow = `0 0 ${raioSombra}px ${raioSombra / 2}px rgba(0, 255, 204, ${opacidadeSombra})`;
+
+                // Atualização do Painel de Dados
+                txtT.innerText = t.toFixed(1);
+                txtRho.innerText = rho_E.toFixed(1);
+                txtS.innerText = S.toFixed(2);
+                txtPsi.innerText = (psi_t / energiaMaxima).toFixed(4);
+
+                // Continua o loop no próximo ciclo de varredura da tela
+                requestAnimationFrame(atualizarFrame);
+            } else {
+                // COLAPSO DO FLUXO (Atingiu o fim do plano cartesiano)
+                pontoCentral.style.boxShadow = 'none';
+                pontoCentral.style.backgroundColor = '#ff3333';
+                txtPsi.innerText = "0.0000 // COLLAPSE";
+                txtPsi.style.color = '#ff3333';
+            }
+        }
+
+        // Dispara o loop ao carregar a página
+        requestAnimationFrame(atualizarFrame);
+    </script>
+</body>
+</html>
