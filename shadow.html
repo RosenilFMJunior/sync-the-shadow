@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SYNC - The Shadow of the Minimum Space</title>
+    <title>SYNC - Maximum Saturation // Shadow</title>
     <style>
         * {
             margin: 0;
@@ -12,8 +12,8 @@
         }
 
         body {
-            background-color: #050505;
-            color: #ffffff;
+            background-color: #000000; /* Preto absoluto para destacar o neon */
+            color: #00ffcc; /* Verde-ciano de alta saturação */
             font-family: monospace;
             overflow: hidden;
             height: 100vh;
@@ -21,9 +21,12 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            /* Força o renderizador do navegador a saturar as cores ao máximo */
+            contrast: 200%;
+            image-rendering: pixelated;
         }
 
-        /* Plano Cartesiano */
+        /* Plano Cartesiano Hiper-Saturado */
         .cartesian-plane {
             position: absolute;
             width: 100%;
@@ -36,7 +39,9 @@
             left: 0;
             width: 100%;
             height: 1px;
-            background: rgba(255, 255, 255, 0.02);
+            background: #00ffcc;
+            opacity: 0.15;
+            box-shadow: 0 0 8px #00ffcc;
         }
         .axis-y {
             position: absolute;
@@ -44,10 +49,12 @@
             top: 0;
             width: 1px;
             height: 100%;
-            background: rgba(255, 255, 255, 0.02);
+            background: #00ffcc;
+            opacity: 0.15;
+            box-shadow: 0 0 8px #00ffcc;
         }
 
-        /* Container de Transição (A "Imagem" que vai encolher) */
+        /* Container de Transição */
         #viewport-container {
             position: absolute;
             width: 100%;
@@ -55,146 +62,34 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: transform 2.5s cubic-bezier(0.7, 0, 0.3, 1), opacity 2s;
+            transition: transform 2.2s cubic-bezier(0.85, 0, 0.15, 1), opacity 1.8s;
             transform-origin: center center;
         }
 
-        /* O ESPAÇO MÍNIMO (No centro de tudo) */
+        /* O ESPAÇO MÍNIMO (Ponto Puro Invariante) */
         #minimum-space {
             position: absolute;
-            width: 4px;
-            height: 4px;
+            width: 5px;
+            height: 5px;
             background-color: #ffffff;
             border-radius: 50%;
             z-index: 10;
+            box-shadow: 0 0 10px #ffffff;
         }
 
         /* Tela de Entrada / Portal */
         #portal-screen {
             text-align: center;
             z-index: 30;
-            transition: opacity 0.5s;
+            transition: opacity 0.4s;
         }
 
         .sync-btn {
-            background: rgba(0, 0, 0, 0.8);
-            color: rgba(255, 255, 255, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            padding: 15px 30px;
+            background: #000000;
+            color: #00ffcc;
+            border: 2px solid #00ffcc;
+            padding: 18px 36px;
             font-family: monospace;
-            font-size: 12px;
-            letter-spacing: 3px;
-            cursor: pointer;
-            transition: all 0.4s;
-        }
-
-        .sync-btn:hover {
-            color: #00ffcc;
-            border-color: rgba(0, 255, 204, 0.3);
-            text-shadow: 0 0 10px rgba(0, 255, 204, 0.5);
-            box-shadow: 0 0 15px rgba(0, 255, 204, 0.1);
-        }
-
-        /* Telemetria Oculta Inicialmente */
-        #telemetry {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            font-size: 11px;
-            line-height: 1.6;
-            letter-spacing: 1px;
-            color: rgba(255, 255, 255, 0.3);
-            z-index: 20;
-            opacity: 0;
-            transition: opacity 1s;
-            pointer-events: none;
-        }
-
-        .highlight {
-            color: #00ffcc;
-        }
-
-        /* Estado de Colapso (Encolhimento extremo) */
-        .collapsed {
-            transform: scale(0.001);
-            opacity: 0.5;
-        }
-    </style>
-</head>
-<body>
-
-    <div class="cartesian-plane">
-        <div class="axis-x"></div>
-        <div class="axis-y"></div>
-    </div>
-
-    <div id="portal-screen">
-        <button class="sync-btn" id="start-trigger">// INICIAR_SINTONIZACAO</button>
-    </div>
-
-    <div id="viewport-container">
-        <div id="minimum-space"></div>
-    </div>
-
-    <div id="telemetry">
-        <div>PROJETO: SYNC // THE SHADOW</div>
-        <div>TEMPO DE FLUXO (t): <span id="val-t" class="highlight">0</span>s</div>
-        <div>DENSIDADE ENERGIA (&rho;_E): <span id="val-rho" class="highlight">100</span>%</div>
-        <div>ENTROPIA ACUMULADA (S): <span id="val-s" class="highlight">0</span></div>
-        <div>ESTADO EXISTENCIAL (&Psi;): <span id="val-psi" class="highlight">1.00</span></div>
-    </div>
-
-    <script>
-        const btnIniciar = document.getElementById('start-trigger');
-        const telaPortal = document.getElementById('portal-screen');
-        const containerEfeito = document.getElementById('viewport-container');
-        const pontoCentral = document.getElementById('minimum-space');
-        const painelTelemetria = document.getElementById('telemetry');
-
-        const txtT = document.getElementById('val-t');
-        const txtRho = document.getElementById('val-rho');
-        const txtS = document.getElementById('val-s');
-        const txtPsi = document.getElementById('val-psi');
-
-        // Configurações do Algoritmo
-        let t = 0;
-        const taxaDiluicao = 0.015;
-        const ritmoEntropia = 0.005;
-        const estresseOxidativo = 1.3; 
-        const energiaMaxima = 100;
-        const I_x0 = 1.0;
-
-        function executarAlgoritmo() {
-            t += 0.05;
-
-            const rho_E = energiaMaxima * Math.exp(-taxaDiluicao * t);
-            const S = (ritmoEntropia * Math.pow(t, 1.4)) * estresseOxidativo;
-            const psi_t = (rho_E * I_x0) - S;
-
-            if (psi_t > 0) {
-                const raioSombra = S * 4; 
-                const opacidadeSombra = (psi_t / energiaMaxima) * 0.8;
-                
-                // A animação da sombra acontece no ponto estável que sobrou
-                pontoCentral.style.boxShadow = `0 0 ${raioSombra}px ${raioSombra / 2}px rgba(0, 255, 204, ${opacidadeSombra})`;
-
-                txtT.innerText = t.toFixed(1);
-                txtRho.innerText = rho_E.toFixed(1);
-                txtS.innerText = S.toFixed(2);
-                txtPsi.innerText = (psi_t / energiaMaxima).toFixed(4);
-
-                requestAnimationFrame(executarAlgoritmo);
-            } else {
-                pontoCentral.style.boxShadow = 'none';
-                pontoCentral.style.backgroundColor = '#ff3333';
-                txtPsi.innerText = "0.0000 // COLLAPSE";
-                txtPsi.style.color = '#ff3333';
-            }
-        }
-
-        btnIniciar.addEventListener('click', () => {
-            // 1. Esconde o botão do portal
-            telaPortal.style.opacity = '0';
-            setTimeout(() => telaPortal.style.display = 'none', 500);
-
-            //
+            font-size: 13px;
+            font-weight: bold;
+            letter-spacing
