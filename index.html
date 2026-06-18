@@ -31,6 +31,7 @@
             width: 100%;
             height: 100%;
             pointer-events: none;
+            z-index: 15; /* Fica acima da câmera, abaixo do portal */
         }
         .axis-x {
             position: absolute;
@@ -53,7 +54,7 @@
             box-shadow: 0 0 8px #00ffcc;
         }
 
-        /* Container de Transição */
+        /* Container de Transição (A Imagem da Câmera) */
         #viewport-container {
             position: absolute;
             width: 100%;
@@ -61,18 +62,28 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            transition: transform 2.2s cubic-bezier(0.85, 0, 0.15, 1), opacity 1.8s;
+            transition: transform 2.5s cubic-bezier(0.85, 0, 0.15, 1), opacity 1.8s;
             transform-origin: center center;
+            z-index: 5;
         }
 
-        /* O ESPAÇO MÍNIMO */
+        /* Elemento de Vídeo da Câmera Humana */
+        #camera-feed {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            filter: saturate(3) contrast(1.5); /* Saturação extrema do feed biológico */
+        }
+
+        /* O ESPAÇO MÍNIMO (Ponto Puro Invariante) */
         #minimum-space {
             position: absolute;
             width: 5px;
             height: 5px;
             background-color: #ffffff;
             border-radius: 50%;
-            z-index: 10;
+            z-index: 25;
             box-shadow: 0 0 10px #ffffff;
         }
 
@@ -127,10 +138,10 @@
             text-shadow: 0 0 8px #00ffcc, 0 0 15px #00ffcc;
         }
 
-        /* Estado de Colapso Máximo */
+        /* Estado de Colapso Máximo (Esmaga o feed da câmera para o nada) */
         .collapsed {
             transform: scale(0.0001);
-            opacity: 0.8;
+            opacity: 0;
         }
     </style>
 </head>
@@ -146,11 +157,12 @@
     </div>
 
     <div id="viewport-container">
+        <video id="camera-feed" autoplay playsinline muted></video>
         <div id="minimum-space"></div>
     </div>
 
     <div id="telemetry">
-        <div>MATRIZ: SYNC // THE SHADOW [SATURATED]</div>
+        <div>MATRIZ: SYNC // THE SHADOW [VIDEO_SATURATED]</div>
         <div>TEMPO DE FLUXO (t): <span id="val-t" class="highlight">0</span>s</div>
         <div>DENSIDADE ENERGIA (&rho;_E): <span id="val-rho" class="highlight">100</span>%</div>
         <div>ENTROPIA ACUMULADA (S): <span id="val-s" class="highlight">0</span></div>
@@ -161,6 +173,7 @@
         const btnIniciar = document.getElementById('start-trigger');
         const telaPortal = document.getElementById('portal-screen');
         const containerEfeito = document.getElementById('viewport-container');
+        const videoFeed = document.getElementById('camera-feed');
         const pontoCentral = document.getElementById('minimum-space');
         const painelTelemetria = document.getElementById('telemetry');
 
@@ -169,13 +182,27 @@
         const txtS = document.getElementById('val-s');
         const txtPsi = document.getElementById('val-psi');
 
-        // Variáveis do Algoritmo
         let t = 0;
         const taxaDiluicao = 0.02;
         const ritmoEntropia = 0.007;
         const estresseOxidativo = 1.6; 
         const energiaMaxima = 100;
         const I_x0 = 1.0;
+
+        // Ativa a câmera real assim que a página carrega
+        async function inicializarCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" }, /* Tenta a câmera traseira do celular */
+                    audio: false 
+                });
+                videoFeed.srcObject = stream;
+            } catch (err) {
+                console.error("Acesso à câmera negado. Usando modo de segurança.", err);
+                // Fallback caso dê erro de permissão no navegador
+                videoFeed.style.backgroundColor = "rgba(0, 255, 204, 0.1)";
+            }
+        }
 
         function executarAlgoritmo() {
             t += 0.04;
@@ -197,5 +224,35 @@
 
                 requestAnimationFrame(executarAlgoritmo);
             } else {
-                // COLAPSO CRÍTICO: Transição para Vermelho Puro Fluorescente
-                pontoCentral.style.boxShadow = '0 0 50px 25px #ff0055, 0 0
+                pontoCentral.style.boxShadow = '0 0 50px 25px #ff0055, 0 0 10px #ff0055';
+                pontoCentral.style.backgroundColor = '#ff0055';
+                
+                txtPsi.innerText = "0.0000 // EXPIRADO";
+                txtPsi.style.color = '#ff0055';
+                txtPsi.style.textShadow = '0 0 10px #ff0055';
+                
+                document.body.style.color = '#ff0055';
+                document.querySelectorAll('.highlight').forEach(el => el.style.color = '#ffffff');
+            }
+        }
+
+        btnIniciar.addEventListener('click', () => {
+            telaPortal.style.opacity = '0';
+            setTimeout(() => telaPortal.style.display = 'none', 400);
+
+            // Transição: A imagem ao vivo do ambiente encolhe violentamente até sumir no ponto
+            containerEfeito.classList.add('collapsed');
+
+            setTimeout(() => {
+                // Retira o ponto e a sombra do contêiner destruído para mantê-los ativos na tela
+                document.body.appendChild(pontoCentral); 
+                painelTelemetria.style.opacity = '1';
+                requestAnimationFrame(executarAlgoritmo);
+            }, 2200);
+        });
+
+        // Inicializa o sensor biológico ao entrar
+        inicializarCamera();
+    </script>
+</body>
+</html>
